@@ -21,17 +21,10 @@ class DataTable {
 
     constructor(table) {
 
+        // TODO: move table building to hierarchical-table library
+
         let {heading, stub}  = transform_table(table);
         this.table = get_preview_table(get_table(heading, stub, table));
-
-        // format view structure for ongoing view updates
-        this.view = {};
-        for (let key in this.table.dataset.levels) {
-            this.view[key] = observable([this.table.dataset.levels[key]]);
-        }
-        // for (let key in this.table.heading) {
-        //     this.view[key] = observable([this.table.dataset.levels[key]]);
-        // }
 
     }
 
@@ -123,6 +116,9 @@ class Store {
     }
 
     @action activate_table(table:DataTable) {
+        // TODO: move hopper reset to hierarchical-table library
+        for (let hopper of table.table.heading.hop) hopper(true);
+        for (let hopper of table.table.stub.hop) hopper(true);
         this.active_table = table;
     }
 
