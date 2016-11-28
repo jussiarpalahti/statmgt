@@ -1,0 +1,174 @@
+
+html {
+    padding: 2em 0.5em 4em 0.5em;
+}
+
+#table, #tableselect, #tablelist, #datasources {
+    margin: 1em;
+}
+
+/*
+Blocked ugly basic styles
+tr, th, td, table {
+	border: 1px solid green;
+}
+
+th, td { width: 2em; height: 1em;}
+
+th { background-color: #00A000;}
+
+th.blank { background-color: white;}
+*/
+
+/*
+for Pure menus
+*/
+
+.custom-restricted {
+    height: 10em;
+    width: 14em;
+    border: 1px solid gray;
+    border-radius: 4px;
+}
+
+.top_header {clear: both; width: 20em;}
+.top_header .header_menu {display: block; float: none;}
+
+.header_menu {display: inline; float: left;
+    margin-right: 0.7em;}
+
+.pure-table-bordered th {
+    text-align: center;
+    border: 1px solid #cbcbcb;
+}
+
+.pure-table-bordered {
+    border-right: 1px solid #cbcbcb;
+}
+
+.pure-table-bordered tbody th {
+    text-align: left;
+    background-color: #e0e0e0;
+}
+
+/*
+Pure menus end
+*/
+
+#table {
+    padding: 1em 0;
+    clear: both;
+    max-width: 85%;
+}
+
+.viz {
+    vertical-align: bottom;
+}
+
+.centered {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.button-active {
+    border: 1px inset black;
+}
+
+#fixedtable #app {
+    margin: 1em;
+    position: fixed;
+    z-index: 1;
+}
+
+#fixedtable #tablesizer {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+#fixedtable .pos {
+    position: fixed;
+    left: 1em;
+    top: 22em;
+    max-width: 95vw;
+    max-height: 67vh;
+    overflow: hidden;
+}
+
+#heading {
+    z-index: 10;
+}
+
+#stub {
+    z-index: 5;
+}
+
+#cells {
+    z-index: 1;
+}
+
+#topleft_hider {
+    z-index: 20;
+}
+
+.pure-table-bordered tbody th div {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+}
+
+.hidable {
+    border: 1px solid black;
+    position: absolute;
+    z-index: 1;
+    background-color: white;
+    margin: 0;
+    padding: 1em 0;
+}
+
+.datasetlist {
+    margin: 0;
+    padding: 1em;
+}
+
+.datasetlist li {
+    padding: 0.4em;
+    list-style-type: none;
+}
+
+.selectmark {
+    min-width: 1em;
+    border: 1px solid white;
+    display: block;
+    float: left;
+}
+
+#plots {
+    width: 100%;
+    height: 25em;
+}
+
+#toolbar {
+    position: fixed;
+    text-align: center;
+    vertical-align: bottom;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    border-top: 1px solid black;
+    z-index: 10;
+    background-color: white;
+}
+
+#toolbar h1 {
+    display: inline;
+    font-size: 120%;
+    margin: 2em;
+}
+
+#toolbar button {
+    margin: 1em;
+}
+
+/* TODO: this brakes now in chrome when 100% */
+.pure-menu-item { height: auto; }
