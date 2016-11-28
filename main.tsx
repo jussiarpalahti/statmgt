@@ -27,8 +27,12 @@ class DataTable {
         // format view structure for ongoing view updates
         this.view = {};
         for (let key in this.table.dataset.levels) {
-            this.view[key] = observable([]);
+            this.view[key] = observable([this.table.dataset.levels[key]]);
         }
+        // for (let key in this.table.heading) {
+        //     this.view[key] = observable([this.table.dataset.levels[key]]);
+        // }
+
     }
 
     @action add_selection(heading:string, index:number) {
@@ -148,8 +152,9 @@ class Store {
 // APP
 
 interface MenuProps {
+    selection: string[];
     heading: string;
-    items: string[]
+    items: [string]
 }
 
 @observer class Menu extends React.Component<MenuProps, {}> {
@@ -159,10 +164,10 @@ interface MenuProps {
     }
 
     render() {
-        let {heading, items} = this.props;
+        let {selection, heading, items} = this.props;
         let menu_items = items.map(
             (item, index) => {
-                let selected = store.active_table.view[heading].indexOf(index) !== -1;
+                let selected = selection.indexOf(item) !== -1;
                 return <li
                     onClick={this.select.bind(this, heading, index)}
                     key={heading + "_" + index}
@@ -185,8 +190,8 @@ interface MenuProps {
 
 const TableSelect = ({data}) => {
     return (<div>
-        <div>{data.table.dataset.heading.map((heading, index) => <span key={index}><Menu heading={heading} items={data.table.dataset.levels[heading]} /></span>)}</div>
-        <div>{data.table.dataset.stub.map((stub, index) => <span key={index}><Menu heading={stub} items={data.table.dataset.levels[stub]} /></span>)}</div>
+        <div>{data.table.dataset.heading.map((heading, index) => <span key={index}><Menu selection={data.table.heading.headers[index]} heading={heading} items={data.table.dataset.levels[heading]} /></span>)}</div>
+        <div>{data.table.dataset.stub.map((stub, index) => <span key={index}><Menu selection={data.table.stub.headers[index]} heading={stub} items={data.table.dataset.levels[stub]} /></span>)}</div>
     </div>)
 };
 
@@ -204,7 +209,6 @@ const TableList = ({source, activate}) => {
 
 @observer class App extends React.Component<{store:Store}, {}> {
     render() {
-        store.active_table ? console.log("graagh", toJS(store.active_table)) : console.log("arg");
         return (
             <div>
                 <h1>Example app for hierarchical table library</h1>
