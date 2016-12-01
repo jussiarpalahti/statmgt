@@ -11,6 +11,12 @@ import { observer } from 'mobx-react';
 
 // INTERFACES
 
+interface Selection {
+    selections: [string];
+    axis: string;
+    index: number;
+}
+
 // DataTable is a combination of original dataset and its selected headers
 class DataTable {
 
@@ -18,22 +24,34 @@ class DataTable {
     @observable view: any; // TODO: asMap type?
     @observable view_matrix: [string[]];
     @observable preview: boolean;
+    original: any;
 
     constructor(table) {
 
         // TODO: move table building to hierarchical-table library
+        this.original = table;
 
         let {heading, stub}  = transform_table(table);
         this.table = get_preview_table(get_table(heading, stub, table));
 
     }
 
-    @action add_selection(heading:string, index:number) {
-        let prev = this.view[heading].indexOf(index);
-        if (prev == -1) this.view[heading].push(index);
-        else this.view[heading].remove(index);
-    }
+    @action add_selection(selection: Selection, heading:string, item:string) {
+        // TODO: This is completely backwards and belongs to hierarchical-table
 
+        selection.selections.push(item);
+
+        let new_headers = [];
+        for (let header of this.table.dataset.levels[heading]) {
+            if (selection.selections.indexOf(header) !== -1) {
+                new_headers.push(header);
+            }
+        }
+        this.table[selection.axis][selection.index] = new_headers;
+        this.table = get_table(this.table.heading.headers, this.table.stub.headers, this.original);
+        for (let hopper of this.table.heading.hop) hopper(true);
+        for (let hopper of this.table.stub.hop) hopper(true);
+    }
 }
 
 // Collection of DataTables
@@ -137,8 +155,9 @@ class Store {
         }
     }
 
-    @action update_table(heading:string, index:number) {
-        this.active_table.add_selection(heading, index);
+    @action update_table(selection: Selection, heading:string, item:string) {
+        // TODO: Too many layers of indirection
+        this.active_table.add_selection(selection, heading, item);
     }
 
 }
@@ -148,24 +167,24 @@ class Store {
 // APP
 
 interface MenuProps {
-    selection: string[];
+    selection: Selection;
     heading: string;
-    items: [string]
+    items: [string];
 }
 
 @observer class Menu extends React.Component<MenuProps, {}> {
 
-    select(heading, index) {
-        store.update_table(heading, index);
+    select(selection:Selection, heading:string, item:string) {
+        store.update_table(selection, heading, item);
     }
 
     render() {
         let {selection, heading, items} = this.props;
         let menu_items = items.map(
             (item, index) => {
-                let selected = selection.indexOf(item) !== -1;
+                let selected = selection.selections.indexOf(item) !== -1;
                 return <li
-                    onClick={this.select.bind(this, heading, index)}
+                    onClick={this.select.bind(this, selection, heading, item)}
                     key={heading + "_" + index}
                     className="pure-menu-item">
                     <a href="#" className="pure-menu-link">{selected  ? "\u2713" : "\u2717"} {item}</a>
@@ -186,8 +205,32 @@ interface MenuProps {
 
 const TableSelect = ({data}) => {
     return (<div>
-        <div>{data.table.dataset.heading.map((heading, index) => <span key={index}><Menu selection={data.table.heading.headers[index]} heading={heading} items={data.table.dataset.levels[heading]} /></span>)}</div>
-        <div>{data.table.dataset.stub.map((stub, index) => <span key={index}><Menu selection={data.table.stub.headers[index]} heading={stub} items={data.table.dataset.levels[stub]} /></span>)}</div>
+        <div>{
+            data.table.dataset.heading.map(
+                (heading, index) => <span key={index}>
+                    <Menu selection={
+                              {
+                                selections: data.table.heading.headers[index],
+                                index: index,
+                                axis: "heading"
+                              }
+                    }
+                          heading={heading} items={data.table.dataset.levels[heading]} />
+                </span>)
+        }</div>
+        <div>{
+            data.table.dataset.stub.map(
+                (stub, index) => <span key={index}>
+                    <Menu selection={
+                              {
+                                selections: data.table.stub.headers[index],
+                                index: index,
+                                axis: "stub"
+                              }
+                    }
+                          heading={stub} items={data.table.dataset.levels[stub]} />
+                </span>)
+        }</div>
     </div>)
 };
 
@@ -293,13 +336,22 @@ let data = [{
 
 ReactDOM.render(
     <div>
-        <App store={store} />
-        <div id="content">
+        <MakeMaps data={[{
+            id: 1,
+            type: 'geojson',
+            content: '{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.999]},"properties":{"category":"love it"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.998]},"properties":{"category":"fine dining"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.997]},"properties":{"category":"harbor?"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.996]},"properties":{"category":"trees"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.995]},"properties":{"category":"road"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.994]},"properties":{"category":"bugs"}}]}',
+            columns: null,
+            projection: null,
+            latName: null,
+            lonName: null,
+            name: 'Layer2'
+        }]}
+                  viewOptions={{ showMenu: true, showWelcomeScreen: false, showExportOptions: true, allowLayerChanges: true, language: 'en' }}
+                  mapOptions={null} />
+    </div>, document.getElementById('app')
+);
 
-        </div>
-    </div>,
-    document.getElementById('app'));
-
+// <App store={store} />
 // import * as ReactDOM from 'react-dom';
 // import * as React from 'react';
 // import { MakeMaps } from 'makeMaps';
