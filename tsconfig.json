@@ -14,7 +14,8 @@
         "noLib": false,
         "preserveConstEnums": true,
         "suppressImplicitAnyIndexErrors": true,
-        "outDir": "dist"
+        "outDir": "dist",
+        "sourceMap": true
     },
     "exclude": [
         "node_modules"
