@@ -8,9 +8,13 @@
   "author": "Jussi Arpalahti",
   "license": "GPL V3",
   "dependencies": {
-    "makeMaps": "^0.8.2",
+    "@types/react": "^0.14.55",
+    "@types/react-dom": "^0.14.19",
+    "makeMaps": "^0.8.3",
     "react": "^15.3.2",
-    "react-dom": "^15.3.2"
+    "react-dom": "^15.3.2",
+    "typescript": "^2.1.4",
+    "typings": "^2.1.0"
   },
   "devDependencies": {
     "css-loader": "^0.26.0",

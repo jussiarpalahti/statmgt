@@ -1,5 +1,5 @@
 
-import {Table, Dataset, ITable, get_preview_table, transform_table, get_table} from './hierarchicaltable/src/index';
+import {Table, HierarchicalTable, Header} from './hierarchicaltable/src/index';
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -20,7 +20,7 @@ interface Selection {
 // DataTable is a combination of original dataset and its selected headers
 class DataTable {
 
-    @observable table: ITable;
+    @observable table: Table;
     @observable view: any; // TODO: asMap type?
     @observable view_matrix: [string[]];
     @observable preview: boolean;
@@ -31,26 +31,26 @@ class DataTable {
         // TODO: move table building to hierarchical-table library
         this.original = table;
 
-        let {heading, stub}  = transform_table(table);
-        this.table = get_preview_table(get_table(heading, stub, table));
+            // let {heading, stub}  = transform_table(table);
+            // this.table = get_preview_table(get_table(heading, stub, table));
 
     }
 
     @action add_selection(selection: Selection, heading:string, item:string) {
         // TODO: This is completely backwards and belongs to hierarchical-table
 
-        selection.selections.push(item);
-
-        let new_headers = [];
-        for (let header of this.table.dataset.levels[heading]) {
-            if (selection.selections.indexOf(header) !== -1) {
-                new_headers.push(header);
-            }
-        }
-        this.table[selection.axis][selection.index] = new_headers;
-        this.table = get_table(this.table.heading.headers, this.table.stub.headers, this.original);
-        for (let hopper of this.table.heading.hop) hopper(true);
-        for (let hopper of this.table.stub.hop) hopper(true);
+        // selection.selections.push(item);
+        //
+        // let new_headers = [];
+        // for (let header of this.table.dataset.levels[heading]) {
+        //     if (selection.selections.indexOf(header) !== -1) {
+        //         new_headers.push(header);
+        //     }
+        // }
+        // this.table[selection.axis][selection.index] = new_headers;
+        // this.table = get_table(this.table.heading.headers, this.table.stub.headers, this.original);
+        // for (let hopper of this.table.heading.hop) hopper(true);
+        // for (let hopper of this.table.stub.hop) hopper(true);
     }
 }
 
@@ -59,7 +59,7 @@ class DataSource {
     constructor(
         public name:string,
         public url:string,
-        public data:DataTable[]) {}
+        public data:Table[]) {}
 }
 
 
@@ -105,7 +105,7 @@ class Store {
     name = "store";
     @observable datasources:any;
     @observable active_source:DataSource;
-    @observable active_table:DataTable;
+    @observable active_table:Table;
     @observable is_loading:boolean;
 
     constructor(data) {
@@ -130,13 +130,13 @@ class Store {
         this.active_source = source;
         this._load(
             this.active_source.url,
-            (data) => this.active_source.data = data.pxdocs.map(doc => new DataTable(doc)));
+            (data) => this.active_source.data = data.pxdocs.map(doc => new Table(doc)));
     }
 
-    @action activate_table(table:DataTable) {
+    @action activate_table(table:Table) {
         // TODO: move hopper reset to hierarchical-table library
-        for (let hopper of table.table.heading.hop) hopper(true);
-        for (let hopper of table.table.stub.hop) hopper(true);
+        // for (let hopper of table.table.heading.hop) hopper(true);
+        // for (let hopper of table.table.stub.hop) hopper(true);
         this.active_table = table;
     }
 
@@ -155,9 +155,9 @@ class Store {
         }
     }
 
-    @action update_table(selection: Selection, heading:string, item:string) {
+    @action update_table(header:Header) {
         // TODO: Too many layers of indirection
-        this.active_table.add_selection(selection, heading, item);
+
     }
 
 }
@@ -175,7 +175,7 @@ interface MenuProps {
 @observer class Menu extends React.Component<MenuProps, {}> {
 
     select(selection:Selection, heading:string, item:string) {
-        store.update_table(selection, heading, item);
+        // store.update_table(selection, heading, item);
     }
 
     render() {
@@ -206,29 +206,29 @@ interface MenuProps {
 const TableSelect = ({data}) => {
     return (<div>
         <div>{
-            data.table.dataset.heading.map(
+            data.view.heading.map(
                 (heading, index) => <span key={index}>
                     <Menu selection={
                               {
-                                selections: data.table.heading.headers[index],
+                                selections: data.view.heading.headers[index],
                                 index: index,
                                 axis: "heading"
                               }
                     }
-                          heading={heading} items={data.table.dataset.levels[heading]} />
+                          heading={heading} items={data.view.table.dataset.levels[heading]} />
                 </span>)
         }</div>
         <div>{
-            data.table.dataset.stub.map(
+            data.view.stub.map(
                 (stub, index) => <span key={index}>
                     <Menu selection={
                               {
-                                selections: data.table.stub.headers[index],
+                                selections: data.view.stub.headers[index],
                                 index: index,
                                 axis: "stub"
                               }
                     }
-                          heading={stub} items={data.table.dataset.levels[stub]} />
+                          heading={stub} items={data.view.levels[stub]} />
                 </span>)
         }</div>
     </div>)
@@ -237,8 +237,8 @@ const TableSelect = ({data}) => {
 const TableList = ({source, activate}) => {
     let tables = source.data;
     if (tables.length > 0) {
-        let resp = tables.map((data) => {
-            return (<li key={data.table.dataset.name} onClick={() => activate(data)}>{data.table.dataset.name}</li>)
+        let resp = tables.map((data:Table) => {
+            return (<li key={data.base.name} onClick={() => activate(data)}>{data.base.name}</li>)
         });
         return <ul>{resp}</ul>;
     } else {
@@ -272,7 +272,7 @@ const TableList = ({source, activate}) => {
                     {store.active_table ? <TableSelect data={store.active_table} /> : null}
                 </div>
                 <div id="table">
-                    {store.active_table ? <Table data={store.active_table.table} /> : null}
+                    {store.active_table ? <HierarchicalTable table={store.active_table} /> : null}
                 </div>
             </div>
         )
@@ -285,6 +285,8 @@ const TableList = ({source, activate}) => {
 const sources = [new DataSource("My data", "http://localhost:8000/", [])];
 
 const store = new Store(sources);
+
+console.log("...");
 
 // const state_store = {
 //     datasources: toJS(store.datasources),
@@ -336,6 +338,7 @@ let data = [{
 
 ReactDOM.render(
     <div>
+        <App store={store} />
         <MakeMaps data={[{
             id: 1,
             type: 'geojson',
