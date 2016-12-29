@@ -12,7 +12,7 @@ import { observer } from 'mobx-react';
 // INTERFACES
 
 interface Selection {
-    selections: [string];
+    selections: Header[];
     axis: string;
     index: number;
 }
@@ -103,7 +103,7 @@ class StateStore {
 class Store {
 
     name = "store";
-    @observable datasources:any;
+    @observable datasources:DataSource[];
     @observable active_source:DataSource;
     @observable active_table:Table;
     @observable is_loading:boolean;
@@ -167,9 +167,8 @@ class Store {
 // APP
 
 interface MenuProps {
-    selection: Selection;
     heading: string;
-    items: [string];
+    headers: Header[];
 }
 
 @observer class Menu extends React.Component<MenuProps, {}> {
@@ -179,15 +178,14 @@ interface MenuProps {
     }
 
     render() {
-        let {selection, heading, items} = this.props;
-        let menu_items = items.map(
-            (item, index) => {
-                let selected = selection.selections.indexOf(item) !== -1;
+        let {heading, headers} = this.props;
+        let menu_items = headers.map(
+            (header, index) => {
                 return <li
-                    onClick={this.select.bind(this, selection, heading, item)}
+                    onClick={this.select.bind(this, header)}
                     key={heading + "_" + index}
                     className="pure-menu-item">
-                    <a href="#" className="pure-menu-link">{selected  ? "\u2713" : "\u2717"} {item}</a>
+                    <a href="#" className="pure-menu-link">{header.selected  ? "\u2713" : "\u2717"} {header.name}</a>
                 </li>
             });
 
@@ -203,38 +201,32 @@ interface MenuProps {
     }
 }
 
-const TableSelect = ({data}) => {
+interface TableSelectProps {
+    data:Table;
+}
+const TableSelect: React.StatelessComponent<TableSelectProps> = ({data}) => {
     return (<div>
         <div>{
-            data.view.heading.map(
+            data.base.heading.map(
                 (heading, index) => <span key={index}>
-                    <Menu selection={
-                              {
-                                selections: data.view.heading.headers[index],
-                                index: index,
-                                axis: "heading"
-                              }
-                    }
-                          heading={heading} items={data.view.table.dataset.levels[heading]} />
+                    <Menu heading={heading} headers={data.headings[index]} />
                 </span>)
         }</div>
         <div>{
-            data.view.stub.map(
+            data.base.stub.map(
                 (stub, index) => <span key={index}>
-                    <Menu selection={
-                              {
-                                selections: data.view.stub.headers[index],
-                                index: index,
-                                axis: "stub"
-                              }
-                    }
-                          heading={stub} items={data.view.levels[stub]} />
+                    <Menu heading={stub} headers={data.stubs[index]} />
                 </span>)
         }</div>
     </div>)
 };
 
-const TableList = ({source, activate}) => {
+interface TableListProps {
+    source:DataSource;
+    activate:Function;
+}
+
+const TableList: React.StatelessComponent<TableListProps> = ({source, activate}) => {
     let tables = source.data;
     if (tables.length > 0) {
         let resp = tables.map((data:Table) => {
