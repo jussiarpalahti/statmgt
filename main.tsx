@@ -1,5 +1,5 @@
 
-import {Table, HierarchicalTable, Header} from './hierarchicaltable/src/index';
+import {Table, HierarchicalTable, Header, ITable} from './hierarchicaltable/src/index';
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -107,6 +107,8 @@ class Store {
     @observable datasources:DataSource[];
     @observable active_source:DataSource;
     @observable active_table:Table;
+    // TODO: Fix this Mobx change tracking hack
+    @observable active_view:ITable;
     @observable is_loading:boolean;
 
     constructor(data) {
@@ -131,15 +133,16 @@ class Store {
         this.active_source = source;
         this._load(
             this.active_source.url,
-            (data) => this.active_source.data = data.pxdocs.map(doc => new Table(doc)));
+            (data) => {
+                this.active_source.data = data.pxdocs.map(doc => new Table(doc));
+                observable(this.active_source.data);
+            });
     }
 
     @action activate_table(table:Table) {
-        // TODO: move hopper reset to hierarchical-table library
-        // for (let hopper of table.table.heading.hop) hopper(true);
-        // for (let hopper of table.table.stub.hop) hopper(true);
         this.active_table = table;
         this.active_table.update_view();
+        this.active_view = this.active_table.view;
     }
 
     @action async _load(url, update):Promise<any> {
@@ -158,8 +161,9 @@ class Store {
     }
 
     @action update_table(header:Header) {
-        // TODO: Too many layers of indirection
-
+        header.selected ? header.deselect() : header.select();
+        this.active_table.update_view();
+        this.active_view = this.active_table.view;
     }
 
 }
@@ -176,9 +180,8 @@ interface MenuProps {
 
 @observer class Menu extends React.Component<MenuProps, {}> {
 
-    @action select(header:Header) {
-        header.selected ? header.deselect() : header.select();
-        this.props.table.update_view();
+    select(header:Header) {
+        store.update_table(header);
     }
 
     render() {
@@ -195,6 +198,7 @@ interface MenuProps {
 
         return (<div className="header_menu">
             <div className="pure-menu pure-menu-scrollable custom-restricted">
+                {store.active_view ? '' : ''}
                 <a href="#" className="pure-menu-link pure-menu-heading">{heading}</a>
 
                 <ul className="pure-menu-list">
@@ -268,7 +272,8 @@ const TableList: React.StatelessComponent<TableListProps> = ({source, activate})
                     {store.active_table ? <TableSelect table={store.active_table} /> : null}
                 </div>
                 <div id="table">
-                    {store.active_table ? <HierarchicalTable table={store.active_table} /> : null}
+                    {store.active_table ? <div>{store.active_view ? '' : ''}
+                            <HierarchicalTable table={store.active_table} /></div> : null}
                 </div>
             </div>
         )
@@ -335,18 +340,6 @@ let data = [{
 ReactDOM.render(
     <div>
         <App store={store} />
-        <MakeMaps data={[{
-            id: 1,
-            type: 'geojson',
-            content: '{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.999]},"properties":{"category":"love it"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.998]},"properties":{"category":"fine dining"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.997]},"properties":{"category":"harbor?"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.996]},"properties":{"category":"trees"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.995]},"properties":{"category":"road"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.994]},"properties":{"category":"bugs"}}]}',
-            columns: null,
-            projection: null,
-            latName: null,
-            lonName: null,
-            name: 'Layer2'
-        }]}
-                  viewOptions={{ showMenu: true, showWelcomeScreen: false, showExportOptions: true, allowLayerChanges: true, language: 'en' }}
-                  mapOptions={null} />
         <DevTools />
     </div>, document.getElementById('app')
 );
@@ -355,18 +348,18 @@ ReactDOM.render(
 // import * as ReactDOM from 'react-dom';
 // import * as React from 'react';
 // import { MakeMaps } from 'makeMaps';
-//<MakeMaps data={[{
-// id: 1,
-//     type: 'geojson',
-//     content: '{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.999]},"properties":{"category":"love it"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.998]},"properties":{"category":"fine dining"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.997]},"properties":{"category":"harbor?"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.996]},"properties":{"category":"trees"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.995]},"properties":{"category":"road"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.994]},"properties":{"category":"bugs"}}]}',
-//     columns: null,
-//     projection: null,
-//     latName: null,
-//     lonName: null,
-//     name: 'Layer2'
-// }]}
-// viewOptions={{ showMenu: true, showWelcomeScreen: false, showExportOptions: true, allowLayerChanges: true, language: 'en' }}
-// mapOptions={null} />
+// <MakeMaps data={[{
+//             id: 1,
+//             type: 'geojson',
+//             content: '{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.999]},"properties":{"category":"love it"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.998]},"properties":{"category":"fine dining"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.997]},"properties":{"category":"harbor?"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.996]},"properties":{"category":"trees"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.995]},"properties":{"category":"road"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[27.68,62.994]},"properties":{"category":"bugs"}}]}',
+//             columns: null,
+//             projection: null,
+//             latName: null,
+//             lonName: null,
+//             name: 'Layer2'
+//         }]}
+//           viewOptions={{ showMenu: true, showWelcomeScreen: false, showExportOptions: true, allowLayerChanges: true, language: 'en' }}
+//           mapOptions={null} />
 // ReactDOM.render(
 //     <div>
 //         <MakeMaps data={[{
