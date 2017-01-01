@@ -8,6 +8,7 @@ import {MakeMaps} from 'makeMaps';
 
 import {observable, computed, action, toJS, runInAction, transaction, asMap, ObservableMap} from 'mobx';
 import { observer } from 'mobx-react';
+import DevTools from 'mobx-react-devtools';
 
 // INTERFACES
 
@@ -168,14 +169,16 @@ class Store {
 // APP
 
 interface MenuProps {
+    table: Table;
     heading: string;
     headers: Header[];
 }
 
 @observer class Menu extends React.Component<MenuProps, {}> {
 
-    select(selection:Selection, heading:string, item:string) {
-        // store.update_table(selection, heading, item);
+    @action select(header:Header) {
+        header.selected ? header.deselect() : header.select();
+        this.props.table.update_view();
     }
 
     render() {
@@ -203,20 +206,20 @@ interface MenuProps {
 }
 
 interface TableSelectProps {
-    data:Table;
+    table:Table;
 }
-const TableSelect: React.StatelessComponent<TableSelectProps> = ({data}) => {
+const TableSelect: React.StatelessComponent<TableSelectProps> = ({table}) => {
     return (<div>
         <div>{
-            data.base.heading.map(
+            table.base.heading.map(
                 (heading, index) => <span key={index}>
-                    <Menu heading={heading} headers={data.headings[index]} />
+                    <Menu heading={heading} headers={table.headings[index]} table={table} />
                 </span>)
         }</div>
         <div>{
-            data.base.stub.map(
+            table.base.stub.map(
                 (stub, index) => <span key={index}>
-                    <Menu heading={stub} headers={data.stubs[index]} />
+                    <Menu heading={stub} headers={table.stubs[index]} table={table} />
                 </span>)
         }</div>
     </div>)
@@ -262,7 +265,7 @@ const TableList: React.StatelessComponent<TableListProps> = ({source, activate})
                         : store.is_loading ? "..loading" : "no source"}
                 </div>
                 <div id="tableselect">
-                    {store.active_table ? <TableSelect data={store.active_table} /> : null}
+                    {store.active_table ? <TableSelect table={store.active_table} /> : null}
                 </div>
                 <div id="table">
                     {store.active_table ? <HierarchicalTable table={store.active_table} /> : null}
@@ -344,6 +347,7 @@ ReactDOM.render(
         }]}
                   viewOptions={{ showMenu: true, showWelcomeScreen: false, showExportOptions: true, allowLayerChanges: true, language: 'en' }}
                   mapOptions={null} />
+        <DevTools />
     </div>, document.getElementById('app')
 );
 
