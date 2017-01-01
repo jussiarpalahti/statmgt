@@ -138,6 +138,7 @@ class Store {
         // for (let hopper of table.table.heading.hop) hopper(true);
         // for (let hopper of table.table.stub.hop) hopper(true);
         this.active_table = table;
+        this.active_table.update_view();
     }
 
     @action async _load(url, update):Promise<any> {
