@@ -1,4 +1,6 @@
 
+import {App} from "./app";
+
 import {Table, HierarchicalTable, Header, ITable} from './hierarchicaltable/src/index';
 
 import * as React from 'react';
@@ -21,55 +23,17 @@ interface Selection {
     index: number;
 }
 
-// DataTable is a combination of original dataset and its selected headers
-class DataTable {
-
-    @observable table: Table;
-    @observable view: any; // TODO: asMap type?
-    @observable view_matrix: [string[]];
-    @observable preview: boolean;
-    original: any;
-
-    constructor(table) {
-
-        // TODO: move table building to hierarchical-table library
-        this.original = table;
-
-            // let {heading, stub}  = transform_table(table);
-            // this.table = get_preview_table(get_table(heading, stub, table));
-
-    }
-
-    @action add_selection(selection: Selection, heading:string, item:string) {
-        // TODO: This is completely backwards and belongs to hierarchical-table
-
-        // selection.selections.push(item);
-        //
-        // let new_headers = [];
-        // for (let header of this.table.dataset.levels[heading]) {
-        //     if (selection.selections.indexOf(header) !== -1) {
-        //         new_headers.push(header);
-        //     }
-        // }
-        // this.table[selection.axis][selection.index] = new_headers;
-        // this.table = get_table(this.table.heading.headers, this.table.stub.headers, this.original);
-        // for (let hopper of this.table.heading.hop) hopper(true);
-        // for (let hopper of this.table.stub.hop) hopper(true);
-    }
-}
-
-// Collection of DataTables
-class DataSource {
+// Collection of Tables
+export class DataSource {
     constructor(
         public name:string,
         public url:string,
         public data:Table[]) {}
 }
 
-
 // STORE
 
-class Store {
+export class Store {
 
     name = "store";
     @observable datasources:DataSource[];
@@ -89,7 +53,6 @@ class Store {
             this.active_source.url,
             (data) => {
                 this.active_source.data = data.pxdocs.map(doc => new Table(doc));
-                observable(this.active_source.data);
             });
     }
 
@@ -114,134 +77,13 @@ class Store {
         }
     }
 
-    @action update_table(header:Header) {
-        header.selected ? header.deselect() : header.select();
+    @action update_table() {
+         // TODO: Get Matrix URL from table and fetch its data
         this.active_table.update_view();
         this.active_view = this.active_table.view;
     }
 
 }
-
-// var App = ({store:Store, state_store:StateStore}) =>
-// <input onChange={e => store.set_view(e.target.value)} value={store.view} />
-// APP
-
-interface MenuProps {
-    table: Table;
-    heading: string;
-    headers: Header[];
-}
-
-@observer class Menu extends React.Component<MenuProps, {}> {
-
-    select(header:Header) {
-        store.update_table(header);
-    }
-
-    render() {
-        let {heading, headers} = this.props;
-        let menu_items = headers.map(
-            (header, index) => {
-                return <li
-                    onClick={this.select.bind(this, header)}
-                    key={heading + "_" + index}
-                    className="pure-menu-item">
-                    <a href="#" className="pure-menu-link">{header.selected  ? "\u2713" : "\u2717"} {header.name}</a>
-                </li>
-            });
-
-        return (<div className="header_menu">
-            <div className="pure-menu pure-menu-scrollable custom-restricted">
-                {store.active_view ? '' : ''}
-                <a href="#" className="pure-menu-link pure-menu-heading">{heading}</a>
-
-                <ul className="pure-menu-list">
-                    {menu_items}
-                </ul>
-            </div>
-        </div>);
-    }
-}
-
-interface TableSelectProps {
-    table:Table;
-}
-const TableSelect: React.StatelessComponent<TableSelectProps> = ({table}) => {
-    return (<div>
-        <div>{
-            table.base.heading.map(
-                (heading, index) => <span key={index}>
-                    <Menu heading={heading} headers={table.headings[index]} table={table} />
-                </span>)
-        }</div>
-        <div>{
-            table.base.stub.map(
-                (stub, index) => <span key={index}>
-                    <Menu heading={stub} headers={table.stubs[index]} table={table} />
-                </span>)
-        }</div>
-    </div>)
-};
-
-interface TableListProps {
-    source:DataSource;
-    activate:Function;
-}
-
-const TableList: React.StatelessComponent<TableListProps> = ({source, activate}) => {
-    let tables = source.data;
-    if (tables.length > 0) {
-        let resp = tables.map((data:Table) => {
-            return (<li key={data.base.name} onClick={() => activate(data)}>{data.base.name}</li>)
-        });
-        return <ul>{resp}</ul>;
-    } else {
-        return null;
-    }
-};
-
-@observer class SourceView extends React.Component<{store:Store}, {}> {
-    render() {
-        return <div>
-            <h1>Tilastoaineiston katselusovellus</h1>
-            <div id="datasources">
-                <ul>
-                    {store.datasources.map(source => {
-                        return (
-                            <li key={source.name}>
-                                {source.name} <button
-                                onClick={() => store.activate_source(source)}>
-                                Select source</button>
-                            </li>);
-                    })}
-                </ul>
-            </div>
-            <div id="tablelist">
-                {!store.is_loading && store.active_source ?
-                    <TableList source={store.active_source} activate={(table) => store.activate_table(table)} />
-                    : store.is_loading ? "..loading" : "no source"}
-            </div>
-        </div>
-    };
-}
-
-class App extends React.Component<{store:Store}, {}> {
-    render() {
-        return (
-            <div>
-                <SourceView store={store} />
-                <div id="tableselect">
-                    {store.active_table ? <TableSelect table={store.active_table} /> : null}
-                </div>
-                <div id="table">
-                    {store.active_table ? <div>{store.active_view ? '' : ''}
-                            <HierarchicalTable table={store.active_table} /></div> : null}
-                </div>
-            </div>
-        )
-    };
-}
-
 
 // INITIALIZATION
 
@@ -306,8 +148,8 @@ ReactDOM.render(
     </div>, document.getElementById('app')
 );
 
-// State Handling Toolbar
 
+// State Handling Toolbar
 
 function dry(state:any):any {
     return {
@@ -324,7 +166,6 @@ class StateStore {
 
     states:{}[] = [];
     active_state:number = 0;
-
 
     snapshot_state(state:{}) {
         if (!(this.active_state < this.states.length - 1)) {
