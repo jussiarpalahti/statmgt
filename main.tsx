@@ -6,7 +6,10 @@ import * as ReactDOM from 'react-dom';
 
 import {MakeMaps} from 'makeMaps';
 
-import {observable, computed, action, toJS, runInAction, transaction, asMap, ObservableMap, observe} from 'mobx';
+import {
+    observable, computed, action, toJS, runInAction, transaction, asMap, ObservableMap, observe,
+    autorun
+} from 'mobx';
 import { observer } from 'mobx-react';
 import DevTools from 'mobx-react-devtools';
 
@@ -78,20 +81,6 @@ class Store {
 
     constructor(data) {
         this.datasources = data;
-    }
-
-    hydrate(dry_state:any) {
-        // TODO: Make an interface that both Store and dry store could use for data
-        this.datasources = dry_state.datasources;
-    }
-
-    dehydrate():any {
-        // TODO: Make an interface that both Store and dry store could use for data
-        return {
-            datasources: toJS(this.datasources),
-            active_source: toJS(this.active_source),
-            active_table: toJS(this.active_table)
-        };
     }
 
     @action activate_source(source:DataSource) {
@@ -319,39 +308,32 @@ ReactDOM.render(
 
 // State Handling Toolbar
 
-class StoreHouse {
-    store:Store;
-    constructor(store:Store) {
-        this.store = store;
-    }
 
-    dry():{} {
-        return {};
-    }
+function dry(state:any):any {
+    return {
+        datasources: toJS(state.datasources),
+        active_source: toJS(state.active_source),
+        active_table: toJS(state.active_table)};
+}
 
-    hydrate():any {
-        return {};
-    }
+function hydrate():any {
+    return null;
 }
 
 class StateStore {
 
-    store:StoreHouse;
     states:{}[] = [];
     active_state:number = 0;
 
-    constructor(store:StoreHouse) {
-        this.store = store;
-    }
 
-    snapshot_state() {
+    snapshot_state(state:{}) {
         if (!(this.active_state < this.states.length - 1)) {
-            this.states.push(this.store.dry());
+            this.states.push(state);
             this.active_state = this.states.length - 1;
         }
     }
 
-    get_state() {
+    set_state() {
         return this.active_state ? this.states[this.active_state]: '';
     }
 
@@ -376,20 +358,27 @@ class StateStore {
     }
 
     save() {
-        console.log("supposed to save now...");
+        console.log("supposed to save onto localstorage now...");
     }
 }
 
-const statestore = new StateStore(new StoreHouse(store));
+const statestore = new StateStore();
+
+autorun(() => {
+   let unobserved_state = toJS(store.datasources);
+   console.log("toJS state", unobserved_state);
+   statestore.snapshot_state(unobserved_state);
+});
 
 class ToolBar extends React.Component<{statestore:StateStore}, {}> {
     render() {
         return <div>
-            <h1>State Toolbar</h1>
+            <h1 style={{display:"block"}}>State Toolbar</h1>
             <button onClick={statestore.next} disabled={statestore.is_next_state()}>Next state</button>
             <button onClick={statestore.previous} disabled={statestore.is_prev_state()}>Previous state</button>
             <button onClick={statestore.reset}>Reset state</button>
             <button onClick={statestore.save}>Save state</button>
+            <span>States: {statestore.states.length}</span>
         </div>
     }
 }
