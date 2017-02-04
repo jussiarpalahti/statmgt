@@ -6,7 +6,7 @@ import * as ReactDOM from 'react-dom';
 
 import {MakeMaps} from 'makeMaps';
 
-import {observable, computed, action, toJS, runInAction, transaction, asMap, ObservableMap} from 'mobx';
+import {observable, computed, action, toJS, runInAction, transaction, asMap, ObservableMap, observe} from 'mobx';
 import { observer } from 'mobx-react';
 import DevTools from 'mobx-react-devtools';
 
@@ -64,42 +64,7 @@ class DataSource {
 }
 
 
-// STORES
-
-class StateStore {
-
-    name = 'statestore';
-    states:{}[] = [];
-    @observable active_state:number = 0;
-
-    @action add_state(state:{}) {
-        if (!(this.active_state < this.states.length - 1)) {
-            this.states.push(state);
-            this.active_state = this.states.length - 1;
-        }
-    }
-
-    @computed get state() {
-        return this.active_state ? this.states[this.active_state]: '';
-    }
-
-    is_prev_state() {
-        return this.states.length > 1 && this.active_state > 0;
-    }
-
-    is_next_state() {
-        return this.states.length > 1 && this.active_state + 1 < this.states.length;
-    }
-
-    @action previous() {
-        this.active_state--;
-    }
-
-    @action next() {
-        this.active_state++;
-    }
-
-}
+// STORE
 
 class Store {
 
@@ -246,28 +211,36 @@ const TableList: React.StatelessComponent<TableListProps> = ({source, activate})
     }
 };
 
-@observer class App extends React.Component<{store:Store}, {}> {
+@observer class SourceView extends React.Component<{store:Store}, {}> {
+    render() {
+        return <div>
+            <h1>Tilastoaineiston katselusovellus</h1>
+            <div id="datasources">
+                <ul>
+                    {store.datasources.map(source => {
+                        return (
+                            <li key={source.name}>
+                                {source.name} <button
+                                onClick={() => store.activate_source(source)}>
+                                Select source</button>
+                            </li>);
+                    })}
+                </ul>
+            </div>
+            <div id="tablelist">
+                {!store.is_loading && store.active_source ?
+                    <TableList source={store.active_source} activate={(table) => store.activate_table(table)} />
+                    : store.is_loading ? "..loading" : "no source"}
+            </div>
+        </div>
+    };
+}
+
+class App extends React.Component<{store:Store}, {}> {
     render() {
         return (
             <div>
-                <h1>Example app for hierarchical table library</h1>
-                <div id="datasources">
-                    <ul>
-                        {store.datasources.map(source => {
-                            return (
-                                <li key={source.name}>
-                                    {source.name} <button
-                                    onClick={() => store.activate_source(source)}>
-                                    Select source</button>
-                                </li>);
-                        })}
-                    </ul>
-                </div>
-                <div id="tablelist">
-                    {!store.is_loading && store.active_source ?
-                        <TableList source={store.active_source} activate={(table) => store.activate_table(table)} />
-                        : store.is_loading ? "..loading" : "no source"}
-                </div>
+                <SourceView store={store} />
                 <div id="tableselect">
                     {store.active_table ? <TableSelect table={store.active_table} /> : null}
                 </div>
@@ -343,6 +316,90 @@ ReactDOM.render(
         <DevTools />
     </div>, document.getElementById('app')
 );
+
+// State Handling Toolbar
+
+class StoreHouse {
+    store:Store;
+    constructor(store:Store) {
+        this.store = store;
+    }
+
+    dry():{} {
+        return {};
+    }
+
+    hydrate():any {
+        return {};
+    }
+}
+
+class StateStore {
+
+    store:StoreHouse;
+    states:{}[] = [];
+    active_state:number = 0;
+
+    constructor(store:StoreHouse) {
+        this.store = store;
+    }
+
+    snapshot_state() {
+        if (!(this.active_state < this.states.length - 1)) {
+            this.states.push(this.store.dry());
+            this.active_state = this.states.length - 1;
+        }
+    }
+
+    get_state() {
+        return this.active_state ? this.states[this.active_state]: '';
+    }
+
+    is_prev_state() {
+        return this.states.length > 1 && this.active_state > 0;
+    }
+
+    is_next_state() {
+        return this.states.length > 1 && this.active_state + 1 < this.states.length;
+    }
+
+    previous() {
+        this.active_state--;
+    }
+
+    next() {
+        this.active_state++;
+    }
+
+    reset() {
+        this.states = [];
+    }
+
+    save() {
+        console.log("supposed to save now...");
+    }
+}
+
+const statestore = new StateStore(new StoreHouse(store));
+
+class ToolBar extends React.Component<{statestore:StateStore}, {}> {
+    render() {
+        return <div>
+            <h1>State Toolbar</h1>
+            <button onClick={statestore.next} disabled={statestore.is_next_state()}>Next state</button>
+            <button onClick={statestore.previous} disabled={statestore.is_prev_state()}>Previous state</button>
+            <button onClick={statestore.reset}>Reset state</button>
+            <button onClick={statestore.save}>Save state</button>
+        </div>
+    }
+}
+
+let toolbar = document.getElementById('toolbar');
+ReactDOM.render(
+    <div id="toolbar">
+        <ToolBar statestore={statestore} />
+    </div>,
+    toolbar);
 
 // <App store={store} />
 // import * as ReactDOM from 'react-dom';
