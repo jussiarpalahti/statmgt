@@ -17,12 +17,6 @@ import DevTools from 'mobx-react-devtools';
 
 // INTERFACES
 
-interface Selection {
-    selections: Header[];
-    axis: string;
-    index: number;
-}
-
 // Collection of Tables
 export class DataSource {
     constructor(
@@ -38,9 +32,7 @@ export class Store {
     name = "store";
     @observable datasources:DataSource[];
     @observable active_source:DataSource;
-    @observable active_table:Table;
-    // TODO: Fix this Mobx change tracking hack
-    @observable active_view:ITable;
+    active_table:Table;
     @observable is_loading:boolean;
 
     constructor(data) {
@@ -59,7 +51,6 @@ export class Store {
     @action activate_table(table:Table) {
         this.active_table = table;
         this.active_table.update_view();
-        this.active_view = this.active_table.view;
     }
 
     @action async _load(url, update):Promise<any> {
@@ -80,7 +71,6 @@ export class Store {
     @action update_table() {
          // TODO: Get Matrix URL from table and fetch its data
         this.active_table.update_view();
-        this.active_view = this.active_table.view;
     }
 
 }
@@ -90,45 +80,6 @@ export class Store {
 const sources = [new DataSource("My data", "http://localhost:8000/", [])];
 
 const store = new Store(sources);
-
-console.log("...");
-
-// const state_store = {
-//     datasources: toJS(store.datasources),
-//     active_source: null,
-//     active_table: null
-// };
-
-//
-// reaction(
-//     () => store.active_source,
-//     (active_source) => {
-//         state_store.active_source = toJS(active_source);
-//         save_state(state_store);
-//     });
-//
-// reaction(
-//     () => store.active_table,
-//     (active_table) => {
-//         state_store.active_table = toJS(active_table);
-//         save_state(state_store);
-//     });
-//
-// reaction(
-//     () => store.datasources,
-//     (datasources) => {
-//         state_store.datasources = toJS(datasources);
-//         state_store.datasources.data = datasources.data.map(item => toJS(item));
-//         save_state(state_store);
-//     });
-
-//
-// reaction(
-//     () => state_store.state,
-//     (dry_state) => {
-//         store.hydrate(dry_state);
-//     }
-// );
 
 let data = [{
     id: 1,
@@ -155,7 +106,11 @@ function dry(state:any):any {
     return {
         datasources: toJS(state.datasources),
         active_source: toJS(state.active_source),
-        active_table: toJS(state.active_table)};
+        // datasources' table objects stringify
+        // should probably get all Header objects to JSON
+        // or toJS might already do this and below works...
+        active_table: toJS(state.active_table)
+        };
 }
 
 function hydrate():any {
@@ -169,12 +124,13 @@ class StateStore {
 
     snapshot_state(state:{}) {
         if (!(this.active_state < this.states.length - 1)) {
-            this.states.push(state);
+            this.states.push(dry(state));
             this.active_state = this.states.length - 1;
         }
     }
 
     set_state() {
+        // TODO: Apply state to store
         return this.active_state ? this.states[this.active_state]: '';
     }
 

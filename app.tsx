@@ -9,7 +9,6 @@ import {
     autorun
 } from 'mobx';
 import { observer } from 'mobx-react';
-import DevTools from 'mobx-react-devtools';
 
 import {DataSource, Store} from "./main";
 
