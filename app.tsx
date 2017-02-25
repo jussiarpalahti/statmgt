@@ -90,7 +90,12 @@ const TableList: React.StatelessComponent<TableListProps> = ({source, activate})
     }
 };
 
-@observer class SourceView extends React.Component<{store:Store}, {}> {
+class SourceView extends React.Component<{store:Store}, {}> {
+
+    activate_source(source) {
+        this.props.store.activate_source(source);
+    }
+
     render() {
         let store = this.props.store;
         return <div>
@@ -100,9 +105,8 @@ const TableList: React.StatelessComponent<TableListProps> = ({source, activate})
                     {store.datasources.map(source => {
                         return (
                             <li key={source.name}>
-                                {source.name} <button
-                                onClick={() => store.activate_source(source)}>
-                                Select source</button>
+                                {source.name}
+                                <button onClick={() => this.activate_source(source)}>Select source</button>
                             </li>);
                     })}
                 </ul>
@@ -131,8 +135,7 @@ export class App extends React.Component<{store:Store}, {}> {
                     {store.active_table ? <TableSelect update={this.update} table={store.active_table} /> : null}
                 </div>
                 <div id="table">
-                    {store.active_table ? <div>{store.active_view ? '' : ''}
-                            <HierarchicalTable table={store.active_table} /></div> : null}
+                    {store.active_table ? <div><HierarchicalTable table={store.active_table} /></div> : null}
                 </div>
             </div>
         )

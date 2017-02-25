@@ -8,13 +8,6 @@ import * as ReactDOM from 'react-dom';
 
 import {MakeMaps} from 'makeMaps';
 
-import {
-    observable, computed, action, toJS, runInAction, transaction, asMap, ObservableMap, observe,
-    autorun
-} from 'mobx';
-import { observer } from 'mobx-react';
-import DevTools from 'mobx-react-devtools';
-
 // INTERFACES
 
 // Collection of Tables
@@ -25,52 +18,70 @@ export class DataSource {
         public data:Table[]) {}
 }
 
+function render(store:Store) {
+    ReactDOM.render(
+        <div>
+            <App store={store} />
+        </div>, document.getElementById('app')
+    );
+
+}
+
 // STORE
 
 export class Store {
 
     name = "store";
-    @observable datasources:DataSource[];
-    @observable active_source:DataSource;
+    datasources:DataSource[];
+    active_source:DataSource;
     active_table:Table;
-    @observable is_loading:boolean;
+    is_loading:boolean;
 
     constructor(data) {
         this.datasources = data;
     }
 
-    @action activate_source(source:DataSource) {
+    activate_source(source:DataSource) {
         this.active_source = source;
-        this._load(
+        let prom = this._load(
             this.active_source.url,
             (data) => {
                 this.active_source.data = data.pxdocs.map(doc => new Table(doc));
+                console.log("now getting data", this.is_loading);
             });
+        prom.then(() => this.update());
     }
 
-    @action activate_table(table:Table) {
+    activate_table(table:Table) {
         this.active_table = table;
         this.active_table.update_view();
+        this.update();
     }
 
-    @action async _load(url, update):Promise<any> {
+    async _load(url, update):Promise<any> {
+        console.log("loading");
         this.is_loading = true;
         try {
             let response = await fetch(url);
             let data = await response.json();
-            runInAction("update state after fetching data", () => {
-                update(data);
-                this.is_loading = false;
-            });
+            update(data);
+            this.is_loading = false;
+            console.log("but i'm here", this.is_loading);
         } catch (e) {
             console.log("error", e.message);
             throw e;
         }
     }
 
-    @action update_table() {
+    update_table() {
          // TODO: Get Matrix URL from table and fetch its data
         this.active_table.update_view();
+        this.update();
+    }
+
+    update() {
+        console.log("updating", this.is_loading);
+        render(this);
     }
 
 }
@@ -80,6 +91,8 @@ export class Store {
 const sources = [new DataSource("My data", "http://localhost:8000/", [])];
 
 const store = new Store(sources);
+
+render(store);
 
 let data = [{
     id: 1,
@@ -95,27 +108,26 @@ let data = [{
 ReactDOM.render(
     <div>
         <App store={store} />
-        <DevTools />
     </div>, document.getElementById('app')
 );
 
 
 // State Handling Toolbar
 
-function dry(state:any):any {
-    return {
-        datasources: toJS(state.datasources),
-        active_source: toJS(state.active_source),
-        // datasources' table objects stringify
-        // should probably get all Header objects to JSON
-        // or toJS might already do this and below works...
-        active_table: toJS(state.active_table)
-        };
-}
+// function dry(state:any):any {
+//     return {
+//         datasources: toJS(state.datasources),
+//         active_source: toJS(state.active_source),
+//         // datasources' table objects stringify
+//         // should probably get all Header objects to JSON
+//         // or toJS might already do this and below works...
+//         active_table: toJS(state.active_table)
+//         };
+// }
 
-function hydrate():any {
-    return null;
-}
+// function hydrate():any {
+//     return null;
+// }
 
 class StateStore {
 
@@ -124,7 +136,7 @@ class StateStore {
 
     snapshot_state(state:{}) {
         if (!(this.active_state < this.states.length - 1)) {
-            this.states.push(dry(state));
+            // this.states.push(dry(state));
             this.active_state = this.states.length - 1;
         }
     }
@@ -160,12 +172,6 @@ class StateStore {
 }
 
 const statestore = new StateStore();
-
-autorun(() => {
-   let unobserved_state = toJS(store.datasources);
-   console.log("toJS state", unobserved_state);
-   statestore.snapshot_state(unobserved_state);
-});
 
 class ToolBar extends React.Component<{statestore:StateStore}, {}> {
     render() {
