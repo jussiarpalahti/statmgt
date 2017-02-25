@@ -18,15 +18,6 @@ export class DataSource {
         public data:Table[]) {}
 }
 
-function render(store:Store) {
-    ReactDOM.render(
-        <div>
-            <App store={store} />
-        </div>, document.getElementById('app')
-    );
-
-}
-
 // STORE
 
 export class Store {
@@ -41,47 +32,38 @@ export class Store {
         this.datasources = data;
     }
 
-    activate_source(source:DataSource) {
+    activate_source(source:DataSource):Promise<void> {
         this.active_source = source;
-        let prom = this._load(
+        return this._load(
             this.active_source.url,
             (data) => {
                 this.active_source.data = data.pxdocs.map(doc => new Table(doc));
-                console.log("now getting data", this.is_loading);
+                console.log("que", this.active_source.data);
             });
-        prom.then(() => this.update());
     }
 
     activate_table(table:Table) {
+        console.log("activating");
         this.active_table = table;
         this.active_table.update_view();
-        this.update();
     }
 
     async _load(url, update):Promise<any> {
-        console.log("loading");
         this.is_loading = true;
         try {
             let response = await fetch(url);
             let data = await response.json();
             update(data);
             this.is_loading = false;
-            console.log("but i'm here", this.is_loading);
         } catch (e) {
-            console.log("error", e.message);
             throw e;
         }
     }
 
     update_table() {
          // TODO: Get Matrix URL from table and fetch its data
+        console.log("updating");
         this.active_table.update_view();
-        this.update();
-    }
-
-    update() {
-        console.log("updating", this.is_loading);
-        render(this);
     }
 
 }
@@ -92,7 +74,11 @@ const sources = [new DataSource("My data", "http://localhost:8000/", [])];
 
 const store = new Store(sources);
 
-render(store);
+ReactDOM.render(
+    <div>
+        <App store={store} />
+    </div>, document.getElementById('app')
+);
 
 let data = [{
     id: 1,

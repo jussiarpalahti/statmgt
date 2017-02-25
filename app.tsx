@@ -56,18 +56,18 @@ interface TableSelectProps {
     table:Table;
     update:Function;
 }
-const TableSelect: React.StatelessComponent<TableSelectProps> = ({table}) => {
+const TableSelect: React.StatelessComponent<TableSelectProps> = ({table, update}) => {
     return (<div>
         <div>{
             table.base.heading.map(
                 (heading, index) => <span key={index}>
-                    <Menu update={this.props.update} heading={heading} headers={table.headings[index]} table={table} />
+                    <Menu update={update} heading={heading} headers={table.headings[index]} table={table} />
                 </span>)
         }</div>
         <div>{
             table.base.stub.map(
                 (stub, index) => <span key={index}>
-                    <Menu update={this.props.update} heading={stub} headers={table.stubs[index]} table={table} />
+                    <Menu update={update} heading={stub} headers={table.stubs[index]} table={table} />
                 </span>)
         }</div>
     </div>)
@@ -90,14 +90,7 @@ const TableList: React.StatelessComponent<TableListProps> = ({source, activate})
     }
 };
 
-class SourceView extends React.Component<{store:Store}, {}> {
-
-    activate_source(source) {
-        this.props.store.activate_source(source);
-    }
-
-    render() {
-        let store = this.props.store;
+const SourceView: React.StatelessComponent<{store:Store, update:Function, activate:Function}> = ({store, update, activate}) => {
         return <div>
             <h1>Tilastoaineiston katselusovellus</h1>
             <div id="datasources">
@@ -106,33 +99,43 @@ class SourceView extends React.Component<{store:Store}, {}> {
                         return (
                             <li key={source.name}>
                                 {source.name}
-                                <button onClick={() => this.activate_source(source)}>Select source</button>
+                                <button onClick={() => update(source)}>Select source</button>
                             </li>);
                     })}
                 </ul>
             </div>
             <div id="tablelist">
                 {!store.is_loading && store.active_source ?
-                    <TableList source={store.active_source} activate={(table) => store.activate_table(table)} />
-                    : store.is_loading ? "..loading" : "no source"}
+                    <TableList source={store.active_source} activate={(table) => activate(table)} />
+                    : store.is_loading ? "..loading" : "no source.."}
             </div>
         </div>
-    };
-}
+};
 
 export class App extends React.Component<{store:Store}, {}> {
 
-    update() {
+    update_source(source) {
+        let prom = this.props.store.activate_source(source);
+        prom.then(() => this.forceUpdate());
+    }
+
+    activate_table(table) {
+        this.props.store.activate_table(table);
+        this.forceUpdate();
+    }
+
+    update_table() {
         this.props.store.update_table();
+        this.forceUpdate();
     }
 
     render() {
         let store = this.props.store;
         return (
             <div>
-                <SourceView store={store} />
+                <SourceView store={store} update={this.update_source.bind(this)} activate={this.activate_table.bind(this)} />
                 <div id="tableselect">
-                    {store.active_table ? <TableSelect update={this.update} table={store.active_table} /> : null}
+                    {store.active_table ? <TableSelect update={this.update_table.bind(this)} table={store.active_table} /> : null}
                 </div>
                 <div id="table">
                     {store.active_table ? <div><HierarchicalTable table={store.active_table} /></div> : null}
@@ -141,4 +144,3 @@ export class App extends React.Component<{store:Store}, {}> {
         )
     };
 }
-
