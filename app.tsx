@@ -1,13 +1,8 @@
 
-import {Table, HierarchicalTable, Header, ITable} from './hierarchicaltable/src/index';
+import {Table, HierarchicalTable, Header, Heading} from './hierarchicaltable/src/index';
 
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
 
-import {
-    observable, computed, action, toJS, runInAction, transaction, asMap, ObservableMap, observe,
-    autorun
-} from 'mobx';
 import { observer } from 'mobx-react';
 
 import {DataSource, Store} from "./main";
@@ -16,8 +11,7 @@ import {DataSource, Store} from "./main";
 
 interface MenuProps {
     table: Table;
-    heading: string;
-    headers: Header[];
+    heading: Heading;
     update: Function;
 }
 
@@ -29,8 +23,8 @@ interface MenuProps {
     }
 
     render() {
-        let {heading, headers} = this.props;
-        let menu_items = headers.map(
+        let {heading} = this.props;
+        let menu_items = heading.headers.map(
             (header, index) => {
                 return <li
                     onClick={this.select.bind(this, header)}
@@ -42,7 +36,7 @@ interface MenuProps {
 
         return (<div className="header_menu">
             <div className="pure-menu pure-menu-scrollable custom-restricted">
-                <a href="#" className="pure-menu-link pure-menu-heading">{heading}</a>
+                <a href="#" className="pure-menu-link pure-menu-heading">{heading.name}</a>
 
                 <ul className="pure-menu-list">
                     {menu_items}
@@ -59,15 +53,15 @@ interface TableSelectProps {
 const TableSelect: React.StatelessComponent<TableSelectProps> = ({table, update}) => {
     return (<div>
         <div>{
-            table.base.heading.map(
+            table.headings.map(
                 (heading, index) => <span key={index}>
-                    <Menu update={update} heading={heading} headers={table.headings[index]} table={table} />
+                    <Menu update={update} heading={heading} table={table} />
                 </span>)
         }</div>
         <div>{
-            table.base.stub.map(
+            table.stubs.map(
                 (stub, index) => <span key={index}>
-                    <Menu update={update} heading={stub} headers={table.stubs[index]} table={table} />
+                    <Menu update={update} heading={stub} table={table} />
                 </span>)
         }</div>
     </div>)
