@@ -27,8 +27,10 @@ export class Store {
     active_source:DataSource;
     active_table:Table;
     is_loading:boolean;
+    cache:Object;
 
     constructor(data) {
+        this.cache = {};
         this.datasources = data;
     }
 
@@ -45,7 +47,6 @@ export class Store {
     }
 
     activate_table(table:Table) {
-        console.log("activating");
         this.active_table = table;
         this.active_table.update_view();
     }
@@ -64,14 +65,21 @@ export class Store {
         const mask = this.active_table.matrix_mask();
         const query = `cols=${JSON.stringify(mask.heading)}&rows=${JSON.stringify(mask.stub)}`;
         const url = `${this.active_source.url}matrix${this.active_table.base.url}?${query}`;
-        
-        // TODO Add a loading indicator for matrix data load
-        this._load(url, (data) => {
-            console.log("matrix data", data);
+
+        const loader = (data) => {
+            this.cache[url] = data;
             this.active_table.set_matrix(data.matrix);
             this.active_table.update_view();
             cb();
-        });
+        };
+
+        if (this.cache[url]) {
+            loader(this.cache[url]);
+        } else {
+            // TODO Add a loading indicator for matrix data load
+            this._load(url, loader);
+        }
+
     }
 
 }
