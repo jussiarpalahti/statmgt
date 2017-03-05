@@ -119,8 +119,7 @@ export class App extends React.Component<{store:Store}, {}> {
     }
 
     update_table() {
-        this.props.store.update_table();
-        this.forceUpdate();
+        this.props.store.update_table(() => this.forceUpdate());
     }
 
     render() {

@@ -34,11 +34,13 @@ export class Store {
 
     activate_source(source:DataSource):Promise<void> {
         this.active_source = source;
+        this.is_loading = true;
         return this._load(
             this.active_source.url,
             (data) => {
                 this.active_source.data = data.pxdocs.map(doc => new Table(doc));
                 console.log("que", this.active_source.data);
+                this.is_loading = false;
             });
     }
 
@@ -49,26 +51,33 @@ export class Store {
     }
 
     async _load(url, update):Promise<any> {
-        this.is_loading = true;
         try {
             let response = await fetch(url);
             let data = await response.json();
             update(data);
-            this.is_loading = false;
         } catch (e) {
             throw e;
         }
     }
 
-    update_table() {
-         // TODO: Get Matrix URL from table and fetch its data
-        console.log("updating");
-        this.active_table.update_view();
+    update_table(cb?:Function) {
+        const mask = this.active_table.matrix_mask();
+        const query = `cols=${JSON.stringify(mask.heading)}&rows=${JSON.stringify(mask.stub)}`;
+        const url = `${this.active_source.url}matrix${this.active_table.base.url}?${query}`;
+        
+        // TODO Add a loading indicator for matrix data load
+        this._load(url, (data) => {
+            console.log("matrix data", data);
+            this.active_table.set_matrix(data.matrix);
+            this.active_table.update_view();
+            cb();
+        });
     }
 
 }
 
 // INITIALIZATION
+console.log("arg...");
 
 const sources = [new DataSource("My data", "http://localhost:8000/", [])];
 
@@ -153,7 +162,7 @@ class StateStore {
     }
 
     save() {
-        console.log("supposed to save onto localstorage now...");
+        console.log("supposed to save onto local storage now...");
     }
 }
 
@@ -172,12 +181,12 @@ class ToolBar extends React.Component<{statestore:StateStore}, {}> {
     }
 }
 
-let toolbar = document.getElementById('toolbar');
-ReactDOM.render(
-    <div id="toolbar">
-        <ToolBar statestore={statestore} />
-    </div>,
-    toolbar);
+// let toolbar = document.getElementById('toolbar');
+// ReactDOM.render(
+//     <div id="toolbar">
+//         <ToolBar statestore={statestore} />
+//     </div>,
+//     toolbar);
 
 // <App store={store} />
 // import * as ReactDOM from 'react-dom';
