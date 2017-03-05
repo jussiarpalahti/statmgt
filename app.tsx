@@ -17,7 +17,8 @@ interface MenuProps {
 
 @observer class Menu extends React.Component<MenuProps, {}> {
 
-    select(header:Header) {
+    select(header:Header, event:React.MouseEvent) {
+        event.preventDefault();
         header.selected ? header.deselect() : header.select();
         this.props.update();
     }
