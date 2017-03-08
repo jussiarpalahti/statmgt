@@ -67,7 +67,7 @@ export class Store {
         const url = `${this.active_source.url}matrix${this.active_table.base.url}?${query}`;
 
         const loader = (data) => {
-            this.cache[url] = data;
+            if (!this.cache[url]) this.cache[url] = data;
             this.active_table.set_matrix(data.matrix);
             this.active_table.update_view();
             cb();
